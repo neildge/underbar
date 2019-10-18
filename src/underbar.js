@@ -80,19 +80,14 @@
 
   // Return all elements of an array that pass a truth test.
   _.filter = function(collection, test) {
-    var truthArr = [];
-    for (var i = 0; i < collection.length; i++) {
-      if (test(collection[i])) {
-        truthArr.push(collection[i]);
-      }
-    }
-    return truthArr;
-    // _.each(collection, function(index) {
-    //   if (test(index)) {
-    //     newArr.push(index);
-    //   }
-    // })
-    // return newArr;
+      var passedArray = [];
+      _.each(collection, function(index) {
+        if (test(index)) {
+          passedArray.push(index);
+        }
+      });
+      return passedArray;
+
   };
 
   // Return all elements of an array that don't pass a truth test.
@@ -136,16 +131,9 @@
   // Return the results of applying an iterator to each element.
   _.map = function(collection, iterator) {
     var resultArr = [];
-    if (Array.isArray(collection)) {
-      for (var i=0; i<collection.length; i++) {
-        resultArr.push(iterator(collection[i], i, collection));
-      }
-    } else {
-      var keys = Object.keys(collection);
-      for (var j=0; j<keys.length; j++) {
-        resultArr.push(iterator(collection[keys[j]], keys[j], collection));
-      }
-    }
+    _.each(collection, function(number, index) {
+      resultArr.push(iterator(collection[index], index, iterator));
+    });
     return resultArr;
 
     // map() is a useful primitive iteration function that works a lot
@@ -192,23 +180,19 @@
   //   }); // should be 5, regardless of the iterator function passed in
   //          No accumulator is given so the first element is used.
   _.reduce = function(collection, iterator, accumulator) {
-    if (Array.isArray(collection)) {
-      for (var i = 0; i < collection.length; i++) {
-        if (i === 0 && accumulator === undefined) {
-          accumulator = collection[i];
-        } else {
-        accumulator = iterator(accumulator, collection[i]);
+
+    _.each(collection, function(item){
+      if (accumulator === undefined) {
+        accumulator = item;
+      } else {
+        var res = iterator(accumulator, item);
+        if (!(res === undefined)) {
+          accumulator = res;
         }
       }
-    } else {
-    for (var prop in collection) {
-      accumulator = iterator(accumulator, collection[prop]);
-    }
-    }
-  return accumulator;
-
+    });
+    return accumulator;
   };
-
   // Determine if the array or object contains a given value (using `===`).
   _.contains = function(collection, target) {
     // TIP: Many iteration problems can be most easily expressed in
@@ -224,12 +208,48 @@
 
   // Determine whether all of the elements match a truth test.
   _.every = function(collection, iterator) {
+    var result = true;
+    _.reduce(collection, function (isTrue, item) {
+      if (!iterator(isTrue, item)) {
+        result = false;
+      }
+    }, false);
+    return result;
+    // OLD
+    // return _.reduce(collection, function (allAreTrue, item) {
+    //   if (!allAreTrue) {
+    //     return false;
+    //   }
+    //   if (iterator === undefined) {
+    //     iterator = _.identity;
+    //   }
+    //   return Boolean(iterator(item));
+    // }, true);
+
+
+
+
+
     // TIP: Try re-using reduce() here.
   };
 
   // Determine whether any of the elements pass a truth test. If no iterator is
   // provided, provide a default one
   _.some = function(collection, iterator) {
+    if (iterator === undefined) {
+      iterator = _.identity;
+    }
+    var result = false;
+    for (var i=0; i<collection.length; i++) {
+      _.every([collection[i]], function (isTrue, item) {
+        if(iterator(isTrue, item)) {
+          result = true;
+        };
+      })
+    }
+
+    return result;
+
     // TIP: There's a very clever way to re-use every() here.
   };
 
@@ -253,13 +273,30 @@
   //     bla: "even more stuff"
   //   }); // obj1 now contains key1, key2, key3 and bla
   _.extend = function(obj) {
+    for (var i=0; i<arguments.length; i++) {
+      for (var prop in arguments[i]) {
+        obj[prop] = arguments[i][prop];
+      }
+    }
+    return obj;
+
+
   };
 
   // Like extend, but doesn't ever overwrite a key that already
   // exists in obj
-  _.defaults = function(obj) {
-  };
 
+  _.defaults = function(obj) {
+    for (var i=0; i<arguments.length; i++) {
+      for (var prop in arguments[i]) {
+        if (!(prop in obj)) {
+          obj[prop] = arguments[i][prop];
+        }
+      }
+    }
+    return obj;
+
+  };
 
   /**
    * FUNCTIONS
@@ -300,7 +337,23 @@
   // _.memoize should return a function that, when called, will check if it has
   // already computed the result for the given argument and return that value
   // instead if possible.
+
   _.memoize = function(func) {
+
+    var resultObj = {};
+
+    return function() {
+      var args = JSON.stringify(arguments);
+
+      if (args in resultObj){
+        return resultObj[args];
+      } else {
+        return (resultObj[args] = func.apply(this, arguments));
+      }
+
+    };
+
+
   };
 
   // Delays a function for the given number of milliseconds, and then calls
@@ -310,6 +363,15 @@
   // parameter. For example _.delay(someFunction, 500, 'a', 'b') will
   // call someFunction('a', 'b') after 500ms
   _.delay = function(func, wait) {
+    var argArray = [];
+    if (arguments.length > 2) {
+      for (var i=2; i<arguments.length; i++ ) {
+        argArray[i-2] = arguments[i];
+      }
+      setTimeout(func.apply(this, argArray), wait);
+    } else {
+      setTimeout(func, wait);
+    }
   };
 
 
@@ -323,7 +385,25 @@
   // TIP: This function's test suite will ask that you not modify the original
   // input array. For a tip on how to make a copy of an array, see:
   // http://mdn.io/Array.prototype.slice
+
   _.shuffle = function(array) {
+
+
+    var newArr = array.slice();
+    var randArr = [];
+
+    for (var i=0; i<array.length; i++) {
+      var random = Math.floor(Math.random()*newArr.length)
+      randArr[i] = newArr.splice(random,1)[0];
+    }
+
+    return randArr;
+    // _.each(newArr, function (value, i, array) {
+    //   var index = Math.floor(Math.random()*newArr.length);
+
+    //   randArr.push(array.slice(index)
+    // });
+    // return randArr;
   };
 
 
