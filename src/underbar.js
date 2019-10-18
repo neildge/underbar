@@ -80,14 +80,19 @@
 
   // Return all elements of an array that pass a truth test.
   _.filter = function(collection, test) {
-      var passedArray = [];
-      _.each(collection, function(index) {
-        if (test(index)) {
-          passedArray.push(index);
-        }
-      });
-      return passedArray;
-
+    var truthArr = [];
+    for (var i = 0; i < collection.length; i++) {
+      if (test(collection[i])) {
+        truthArr.push(collection[i]);
+      }
+    }
+    return truthArr;
+    // _.each(collection, function(index) {
+    //   if (test(index)) {
+    //     newArr.push(index);
+    //   }
+    // })
+    // return newArr;
   };
 
   // Return all elements of an array that don't pass a truth test.
@@ -131,9 +136,16 @@
   // Return the results of applying an iterator to each element.
   _.map = function(collection, iterator) {
     var resultArr = [];
-    _.each(collection, function(number, index) {
-      resultArr.push(iterator(collection[index], index, iterator));
-    });
+    if (Array.isArray(collection)) {
+      for (var i=0; i<collection.length; i++) {
+        resultArr.push(iterator(collection[i], i, collection));
+      }
+    } else {
+      var keys = Object.keys(collection);
+      for (var j=0; j<keys.length; j++) {
+        resultArr.push(iterator(collection[keys[j]], keys[j], collection));
+      }
+    }
     return resultArr;
 
     // map() is a useful primitive iteration function that works a lot
@@ -180,19 +192,23 @@
   //   }); // should be 5, regardless of the iterator function passed in
   //          No accumulator is given so the first element is used.
   _.reduce = function(collection, iterator, accumulator) {
-
-    _.each(collection, function(item){
-      if (accumulator === undefined) {
-        accumulator = item;
-      } else {
-        var res = iterator(accumulator, item);
-        if (!(res === undefined)) {
-          accumulator = res;
+    if (Array.isArray(collection)) {
+      for (var i = 0; i < collection.length; i++) {
+        if (i === 0 && accumulator === undefined) {
+          accumulator = collection[i];
+        } else {
+        accumulator = iterator(accumulator, collection[i]);
         }
       }
-    });
-    return accumulator;
+    } else {
+    for (var prop in collection) {
+      accumulator = iterator(accumulator, collection[prop]);
+    }
+    }
+  return accumulator;
+
   };
+
   // Determine if the array or object contains a given value (using `===`).
   _.contains = function(collection, target) {
     // TIP: Many iteration problems can be most easily expressed in
@@ -208,23 +224,16 @@
 
   // Determine whether all of the elements match a truth test.
   _.every = function(collection, iterator) {
-    var result = true;
-    _.reduce(collection, function (isTrue, item) {
-      if (!iterator(isTrue, item)) {
-        result = false;
+
+    return _.reduce(collection, function (allAreTrue, item) {
+      if (!allAreTrue) {
+        return false;
       }
-    }, false);
-    return result;
-    // OLD
-    // return _.reduce(collection, function (allAreTrue, item) {
-    //   if (!allAreTrue) {
-    //     return false;
-    //   }
-    //   if (iterator === undefined) {
-    //     iterator = _.identity;
-    //   }
-    //   return Boolean(iterator(item));
-    // }, true);
+      if (iterator === undefined) {
+        iterator = _.identity;
+      }
+      return Boolean(iterator(item));
+    }, true);
 
 
 
@@ -394,6 +403,7 @@
 
     for (var i=0; i<array.length; i++) {
       var random = Math.floor(Math.random()*newArr.length)
+
       randArr[i] = newArr.splice(random,1)[0];
     }
 
